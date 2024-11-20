@@ -1,0 +1,6 @@
+.venv/
+.idea/
+checkpoint/
+dataset/
+preprocessed_dataset/
+runs/
