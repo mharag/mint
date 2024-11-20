@@ -3,7 +3,6 @@ import random
 import torch
 from mint.logger import Logger, LoggerConfig
 from dataclasses import dataclass, field
-from mint.config import get_config
 
 @dataclass
 class TrainerConfig:
@@ -13,9 +12,6 @@ class TrainerConfig:
     warmup_steps: int = 10000
     grad_clip: float = 1.0
     logger_config: LoggerConfig = field(default_factory=LoggerConfig)
-
-
-trainer_config = get_config(TrainerConfig)
 
 
 class Trainer:

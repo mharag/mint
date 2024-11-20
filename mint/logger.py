@@ -13,12 +13,10 @@ class LoggerConfig:
     log_frequency: int = 100
 
 
-
 class Logger:
     def __init__(self, log_dir, experiment_name, log_frequency):
         # get abs path
         self.log_dir = os.path.join(os.path.abspath(log_dir), experiment_name)
-        print(f"Logging to {self.log_dir}")
         if os.path.exists(log_dir):
             shutil.rmtree(log_dir)
         if not os.path.exists(self.log_dir):
