@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from transformers import AutoTokenizer
 import os
-from mint.common import create_config, load_yaml_config
+from mint.common import create_config, load_yaml_config, save_yaml_config
 
 
 @dataclass
@@ -19,8 +19,9 @@ class Tokenizer:
 
         self.tokenizer = None
 
-    def train(self, dataset):
+    def train(self, dataset_path):
         pretrained = AutoTokenizer.from_pretrained("gpt2")
+        dataset = (line for line in open(dataset_path))
         self.tokenizer = pretrained.train_new_from_iterator(dataset, show_progress=True, vocab_size=self.vocab_size)
         self.tokenizer.pad_token = self.pad_token
 
@@ -31,12 +32,12 @@ class Tokenizer:
             architecture=self.architecture,
             pad_token=self.pad_token
         ))
-        config.save(os.path.join(path, "tokenizer_config"))
+        save_yaml_config(config, os.path.join(path, "tokenizer_config"))
 
     @classmethod
     def load(cls, path):
         config = load_yaml_config(os.path.join(path, "tokenizer_config"))
-        tokenizer = cls(config.vocab_size, config.max_seq_len, config.architecture, config.pad_token)
+        tokenizer = cls(config.vocab_size, config.architecture, config.pad_token)
         tokenizer.tokenizer = AutoTokenizer.from_pretrained(os.path.join(path, "tokenizer"))
         return tokenizer
 

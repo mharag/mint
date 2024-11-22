@@ -4,6 +4,7 @@ checkpoint/
 dataset/
 preprocessed_dataset/
 runs/
+datasets/
 
 # Tmp dev files full of garbage
 scratch.*
