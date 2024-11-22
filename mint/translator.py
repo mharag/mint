@@ -11,12 +11,13 @@ class Translator:
 
 
     def translate(self, text, max_length=None):
-        source_tokens = self.source_tokenizer(text, truncation=True, padding="max_length", max_length=64).input_ids
+        source_tokens = self.source_tokenizer.tokenize(text, max_length=max_length)
         source_tokens = torch.tensor(source_tokens).unsqueeze(0).to(next(self.model.parameters()).device)
 
         if max_length is None:
             max_length = self.model.config["max_seq_len"]
 
+        print(source_tokens)
         encoder_output = self.model.encoder(source_tokens)
 
         translated_tokens = torch.empty(source_tokens.size()[0], 0, dtype=torch.long).to(source_tokens.device)
@@ -26,7 +27,7 @@ class Translator:
             if torch.all(translated_tokens[:, -1] == self.target_tokenizer.eos_token_id):
                 break
 
-        return self.target_tokenizer.batch_decode(translated_tokens)
+        return self.target_tokenizer.detokenize(translated_tokens)
 
 
     def greedy_search(self, translated_tokens, predictions):

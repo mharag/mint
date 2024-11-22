@@ -4,7 +4,7 @@ import shutil
 from torch.utils.tensorboard import SummaryWriter
 from collections import defaultdict
 from dataclasses import dataclass
-
+from datetime import datetime
 
 @dataclass
 class LoggerConfig:
@@ -18,7 +18,7 @@ class Logger:
         # get abs path
         self.log_dir = os.path.join(os.path.abspath(log_dir), experiment_name)
         if os.path.exists(log_dir):
-            shutil.rmtree(log_dir)
+            self.log_dir = f"{self.log_dir}_{datetime.now().strftime('%d_%mT%H_%M')}"
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 

@@ -43,7 +43,7 @@ class Tokenizer:
 
 
     def tokenize(self, text, max_length=128):
-        return self.tokenizer(text, truncation=True, padding="max_length", max_length=max_length)
+        return self.tokenizer(text, truncation=True, padding="max_length", max_length=max_length).input_ids
 
 
     def detokenize(self, tokens):

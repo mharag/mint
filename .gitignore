@@ -5,6 +5,7 @@ dataset/
 preprocessed_dataset/
 runs/
 datasets/
+pretrained/
 
 # Tmp dev files full of garbage
 scratch.*

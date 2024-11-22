@@ -21,7 +21,8 @@ class Trainer:
         self.grad_clip = grad_clip
 
         self.dataset = dataset
-        self.data_loader = torch.utils.data.DataLoader(dataset["train"], batch_size=batch_size)
+        self.train_data_loader = torch.utils.data.DataLoader(dataset["train"], batch_size=batch_size)
+        self.test_data_loader = torch.utils.data.DataLoader(dataset["test"], batch_size=batch_size)
 
         self.optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, betas=(0.9, 0.98), eps=1e-9)
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -38,21 +39,16 @@ class Trainer:
         self.source_tokenizer = source_tokenizer
         self.target_tokenizer = target_tokenizer
 
-    def save_model(self, path):
-        torch.save(self.model.state_dict(), path)
-
-    def load_model(self, path):
-        self.model.load_state_dict(torch.load(path))
-
     def train(self, n_epochs):
         for epoch in range(n_epochs):
-            self.train_epoch()
-            self.save_model(f"../checkpoint/epoch_{epoch}.pt")
+            self.train_epoch(epoch, n_epochs)
+            self.model.save(f"../checkpoint/epoch_{epoch}.pt")
+            self.validate(epoch, n_epochs)
 
-    def train_epoch(self):
+    def train_epoch(self, epoch, n_epochs):
         epoch_loss = 0
         steps = 0
-        for batch in (progress_bar := tqdm(self.data_loader)):
+        for batch in (progress_bar := tqdm(self.train_data_loader)):
             source_tokens = torch.stack(batch["source_tokens"], dim=1).to(self.device)
             target_tokens = torch.stack(batch["target_tokens"], dim=1).to(self.device)
             B, S = source_tokens.size()
@@ -91,4 +87,42 @@ class Trainer:
 
 
             steps += 1
-            progress_bar.desc = f"avg loss: {epoch_loss / steps:.4f}"
+            progress_bar.desc = f"Train {epoch+1}/{n_epochs} avg loss: {epoch_loss / steps:.4f}"
+
+    @torch.no_grad()
+    def validate(self, epoch, n_epoch):
+        epoch_loss = 0
+        steps = 0
+        for batch in (progress_bar := tqdm(self.train_data_loader)):
+            source_tokens = torch.stack(batch["source_tokens"], dim=1).to(self.device)
+            target_tokens = torch.stack(batch["target_tokens"], dim=1).to(self.device)
+            B, S = source_tokens.size()
+
+            predictions = self.model(source_tokens, target_tokens)[:,
+                          :-1]  # there is no ground truth for the last token
+            loss = self.loss(predictions.reshape(B * S, -1), target_tokens.view(-1))
+
+            epoch_loss += loss.item()
+            self.logger.log_scalar("loss_val", loss.item())
+            self.logger.log_text(
+                "tokens_val",
+                f"source: {str(source_tokens[0])} \n"
+                f"target: {str(target_tokens[0])}"
+                f"prediction: {str(torch.argmax(predictions[0], dim=-1))}"
+            )
+            source_text = self.source_tokenizer.detokenize(source_tokens[:1])[0]
+            target_text = self.target_tokenizer.detokenize(target_tokens[:1])[0]
+            prediction_text = self.target_tokenizer.detokenize(torch.argmax(predictions[0], dim=-1).unsqueeze(0))[0]
+            self.logger.log_text(
+                "translation_val",
+                f"source: {source_text}\n"
+                f"target: {target_text}\n"
+                f" prediction: {prediction_text}"
+            )
+
+            self.logger.log_scalar("bleu_val", bleu(target_text, prediction_text))
+            self.logger.log_scalar("chrf2_val", chrf2(target_text, prediction_text))
+
+            steps += 1
+            progress_bar.desc = f"Validation {epoch}/{n_epoch} avg loss: {epoch_loss / steps:.4f}"
+

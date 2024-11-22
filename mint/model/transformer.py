@@ -3,6 +3,9 @@ from dataclasses import dataclass,field
 
 from mint.model.attention import MultiHeadAttention, MultiHeadAttentionConfig
 from mint.model.embedding import Embedding, EmbeddingConfig
+from mint.common import load_yaml_config, save_yaml_config, to_dict
+import os
+from datetime import datetime
 
 
 @dataclass
@@ -146,13 +149,32 @@ class TransformerConfig:
 
 
 class Transformer(torch.nn.Module):
-    def __init__(self, encoder_config, decoder_config, glob=None):
+    def __init__(self, config):
         super(Transformer, self).__init__()
-        self.encoder = Encoder(**encoder_config)
-        self.decoder = Decoder(**decoder_config)
+        self.config = config
+        config_dict = to_dict(config)
+        print(config_dict["encoder_config"])
+        self.encoder = Encoder(**config_dict["encoder_config"])
+        self.decoder = Decoder(**config_dict["decoder_config"])
 
     def forward(self, encoder_tokens, decoder_tokens):
         encoder_output = self.encoder(encoder_tokens)
         decoder_output = self.decoder(decoder_tokens, encoder_output)
 
         return decoder_output
+
+    def save(self, path):
+        if os.path.exists(path):
+            path = f"{path}_{datetime.now().strftime('%d_%mT%H_%M')}"
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        torch.save(self.state_dict(), os.path.join(path, "weights.pt"))
+        save_yaml_config(self.config, os.path.join(path, "config.yaml"))
+
+    @classmethod
+    def load(cls, path):
+        config = load_yaml_config(os.path.join(path, "config.yaml"))
+        model = cls(config)
+        model.load_state_dict(torch.load(os.path.join(path, "weights.pt")))
+        return model
