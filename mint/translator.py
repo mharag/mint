@@ -32,3 +32,26 @@ class Translator:
 
     def greedy_search(self, translated_tokens, predictions):
         return torch.cat([translated_tokens, torch.argmax(predictions[:, -1, :], dim=-1).unsqueeze(0)], dim=-1)
+
+    def random_search(self, translated_tokens, predictions):
+        return torch.cat([
+            translated_tokens,
+            torch.multinomial(torch.softmax(predictions[:, -1, :], dim=-1), 1)
+        ], dim=-1)
+
+    def beam_search(self, translated_tokens, predictions, n_beams=5):
+        # batch dimension is beam dimension
+        log_probs = torch.log_softmax(predictions, dim=-1)
+        top_probs, top_tokens = torch.topk(log_probs[:, -1, :], n_beams, dim=-1)
+        # for every every original beam, create n_beams new beams
+        top_probs, top_tokens = top_probs.view(-1), top_tokens.view(-1)
+        new_beans = torch.cat([
+            torch.repeat_interleave(translated_tokens, n_beams, dim=0),
+            top_tokens.unsqueeze(0)
+        ], dim=-1)
+
+
+
+
+
+

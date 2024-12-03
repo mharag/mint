@@ -12,11 +12,27 @@ class TrainerConfig:
     use_cuda: bool = True
     warmup_steps: int = 10000
     grad_clip: float = 1.0
+    max_steps_per_epoch: int | None = 0
+    max_steps_per_validation: int | None = 0
     logger_config: LoggerConfig = field(default_factory=LoggerConfig)
 
 
 class Trainer:
-    def __init__(self, model, dataset, learning_rate, batch_size, use_cuda, warmup_steps, grad_clip, logger_config, source_tokenizer=None, target_tokenizer=None):
+    def __init__(
+        self,
+        model,
+        dataset,
+        learning_rate,
+        batch_size,
+        use_cuda,
+        warmup_steps,
+        grad_clip,
+        max_steps_per_epoch,
+        max_steps_per_validation,
+        logger_config,
+        source_tokenizer,
+        target_tokenizer
+    ):
         self.model = model
         self.grad_clip = grad_clip
 
@@ -30,6 +46,9 @@ class Trainer:
         )
 
         self.loss = torch.nn.CrossEntropyLoss()
+
+        self.max_steps_per_epoch = max_steps_per_epoch
+        self.max_steps_per_validation = max_steps_per_validation
 
         self.device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
         model.to(self.device)
@@ -48,9 +67,9 @@ class Trainer:
     def train_epoch(self, epoch, n_epochs):
         epoch_loss = 0
         steps = 0
-        for batch in (progress_bar := tqdm(self.train_data_loader)):
-            source_tokens = torch.stack(batch["source_tokens"], dim=1).to(self.device)
-            target_tokens = torch.stack(batch["target_tokens"], dim=1).to(self.device)
+        for batch in (progress_bar := tqdm(self.train_data_loader, total=self.max_steps_per_epoch)):
+            source_tokens = torch.tensor(self.source_tokenizer.tokenize(batch["source"]), dtype=torch.long).to(self.device)
+            target_tokens = torch.tensor(self.target_tokenizer.tokenize(batch["target"]), dtype=torch.long).to(self.device)
             B, S = source_tokens.size()
 
             predictions = self.model(source_tokens, target_tokens)[:,
@@ -87,13 +106,17 @@ class Trainer:
 
 
             steps += 1
+
+            if self.max_steps_per_epoch is not None and steps >= self.max_steps_per_epoch:
+                break
+
             progress_bar.desc = f"Train {epoch+1}/{n_epochs} avg loss: {epoch_loss / steps:.4f}"
 
     @torch.no_grad()
     def validate(self, epoch, n_epoch):
         epoch_loss = 0
         steps = 0
-        for batch in (progress_bar := tqdm(self.train_data_loader)):
+        for batch in (progress_bar := tqdm(self.train_data_loader, total=self.max_steps_per_validation)):
             source_tokens = torch.stack(batch["source_tokens"], dim=1).to(self.device)
             target_tokens = torch.stack(batch["target_tokens"], dim=1).to(self.device)
             B, S = source_tokens.size()
@@ -124,5 +147,9 @@ class Trainer:
             self.logger.log_scalar("chrf2_val", chrf2(target_text, prediction_text))
 
             steps += 1
+
+            if self.max_steps_per_validation is not None and steps >= self.max_steps_per_validation:
+                break
+
             progress_bar.desc = f"Validation {epoch}/{n_epoch} avg loss: {epoch_loss / steps:.4f}"
 
