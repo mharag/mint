@@ -10,7 +10,7 @@ from datetime import datetime
 class LoggerConfig:
     log_dir: str = "../runs/"
     experiment_name: str = "default_experiment"
-    log_frequency: int = 100
+    log_frequency: int = 10
 
 
 class Logger:

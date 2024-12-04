@@ -51,3 +51,7 @@ class Tokenizer:
 
     def detokenize(self, tokens):
         return self.tokenizer.batch_decode(tokens)
+
+    def clip(self, text, max_length):
+        tokens = self.tokenize(text, max_length)
+        return self.detokenize(tokens)

@@ -7,7 +7,11 @@ class SearchStrategy:
 
     def search(self, model, source_tokens, max_length=None, eos_token_id=None):
         if max_length is None:
-            max_length = model.config["max_seq_len"]
+            max_length = model.config.glob["max_seq_len"]
+
+
+        if source_tokens.size(1) > max_length:
+            raise ValueError("source tokens are longer than max length")
 
         encoder_output = model.encoder(source_tokens)
 
@@ -95,4 +99,4 @@ class Translator:
 
         translated_tokens = self.search_strategy.search(self.model, source_tokens, max_length=max_length, eos_token_id=self.target_tokenizer.eos_token_id)
 
-        return self.target_tokenizer.detokenize(translated_tokens)
+        return self.target_tokenizer.detokenize(translated_tokens)[0]
