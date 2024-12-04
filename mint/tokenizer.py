@@ -16,6 +16,7 @@ class Tokenizer:
         self.vocab_size = vocab_size
         self.architecture = architecture
         self.pad_token = pad_token
+        self.eos_token_id = None
 
         self.tokenizer = None
 
@@ -24,6 +25,7 @@ class Tokenizer:
         dataset = (line for line in open(dataset_path))
         self.tokenizer = pretrained.train_new_from_iterator(dataset, show_progress=True, vocab_size=self.vocab_size)
         self.tokenizer.pad_token = self.pad_token
+        self.eos_token_id = self.tokenizer.eos_token_id
 
     def save(self, path):
         self.tokenizer.save_pretrained(os.path.join(path, "tokenizer"))
@@ -39,6 +41,7 @@ class Tokenizer:
         config = load_yaml_config(os.path.join(path, "tokenizer_config"))
         tokenizer = cls(config.vocab_size, config.architecture, config.pad_token)
         tokenizer.tokenizer = AutoTokenizer.from_pretrained(os.path.join(path, "tokenizer"))
+        tokenizer.eos_token_id = tokenizer.tokenizer.eos_token_id
         return tokenizer
 
 

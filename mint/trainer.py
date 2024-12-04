@@ -117,8 +117,8 @@ class Trainer:
         epoch_loss = 0
         steps = 0
         for batch in (progress_bar := tqdm(self.train_data_loader, total=self.max_steps_per_validation)):
-            source_tokens = torch.stack(batch["source_tokens"], dim=1).to(self.device)
-            target_tokens = torch.stack(batch["target_tokens"], dim=1).to(self.device)
+            source_tokens = torch.tensor(self.source_tokenizer.tokenize(batch["source"]), dtype=torch.long).to( self.device)
+            target_tokens = torch.tensor(self.target_tokenizer.tokenize(batch["target"]), dtype=torch.long).to(self.device)
             B, S = source_tokens.size()
 
             predictions = self.model(source_tokens, target_tokens)[:,
