@@ -1,0 +1,3 @@
+vocab_size: 10000
+architecture: gpt2
+pad_token: <pad>
