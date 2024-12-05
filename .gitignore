@@ -6,6 +6,7 @@ preprocessed_dataset/
 runs/
 datasets/
 pretrained/
+**/__pycache__/
 
 # Tmp dev files full of garbage
 scratch.*
