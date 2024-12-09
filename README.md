@@ -46,4 +46,4 @@ This is more of a demonstration of the model, training process and the translati
 | Model        | Size  | Total training samples | BLEU | chrF2 |
 |--------------|-------|------------------------|------|-------|
 | en_sk_small  | 126M  | 200k                   | 0.00 | 1.07  | 
-| en_sk_medium | 289M  | ...                    | ...  | ...   |
+| en_sk_medium | 289M  | 500k                   | ...  | ...   |

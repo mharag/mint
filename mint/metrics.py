@@ -6,7 +6,7 @@ def n_grams(sequence, n):
     return [tuple(sequence[i:i + n]) for i in range(len(sequence) - n + 1)]
 
 
-def bleu(prediction, reference, max_n=4):
+def bleu(prediction, reference, max_n=2):
     precisions = []
     for n in range(1, max_n + 1):
         pred_ngrams = Counter(n_grams(prediction.split(), n))

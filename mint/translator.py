@@ -5,7 +5,7 @@ class SearchStrategy:
     def __init__(self):
         pass
 
-    def search(self, model, source_tokens, max_length=None, eos_token_id=None):
+    def search(self, model, source_tokens, max_length=None, end_tokens=None):
         if max_length is None:
             max_length = model.config.glob["max_seq_len"]
 
@@ -22,8 +22,9 @@ class SearchStrategy:
 
             predictions = model.decoder(translated_tokens, encoder_output)
             translated_tokens = self.step(translated_tokens, predictions)
-            if torch.all(translated_tokens[:, -1] == eos_token_id):
-                break
+            if end_tokens is not None:
+                if set(torch.unique(translated_tokens[:, -1]).tolist()).issubset(end_tokens):
+                    break
 
         return self.result(translated_tokens)
 
@@ -97,6 +98,11 @@ class Translator:
         source_tokens = self.source_tokenizer.tokenize(text, max_length=max_length)
         source_tokens = torch.tensor(source_tokens).unsqueeze(0).to(next(self.model.parameters()).device)
 
-        translated_tokens = self.search_strategy.search(self.model, source_tokens, max_length=max_length, eos_token_id=self.target_tokenizer.eos_token_id)
+        translated_tokens = self.search_strategy.search(
+            self.model,
+            source_tokens,
+            max_length=max_length,
+            end_tokens={self.target_tokenizer.eos_token_id, self.target_tokenizer.pad_token_id}
+        )
 
         return self.target_tokenizer.detokenize(translated_tokens)[0]
